@@ -4,8 +4,9 @@ done:
 3. errors
 4. stress test(3/5)
 5. leak test
+6. coalesce
+
 
 to do:
-6. coalesce
 7. corectness testing.
 8. stress test(2/5)

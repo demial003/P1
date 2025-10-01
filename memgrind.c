@@ -6,12 +6,11 @@
 #include <string.h>
 #include "mymalloc.h"
 
-typedef struct
-{
-    int length;
-    int status;
-} header;
 
+
+
+
+#define SSIZE 5;
 
 int main(){
     srand(time(NULL));
@@ -20,7 +19,7 @@ int main(){
     struct timeval t1;
     gettimeofday(&t0, NULL);
 
-    char * objs[120];
+    void * objs[120];
     void * ptrs[120];
 
     int flag = 0;
@@ -28,10 +27,9 @@ int main(){
     int choice = 0;
     int allocations = 0;
     int idx = 0;
-    while(flag < 50){
+    while(flag < 2){
     for(int i = 0; i < 120; i++){
         void* p = malloc(1);
-
         if(p == NULL) {
             printf("fail");
             exit(1);
@@ -39,10 +37,13 @@ int main(){
         free(p);
     }
 
+ 
     for(int i = 0; i < 120; i ++){
         objs[i] = malloc(1);
+       
     }
-    for(int i = 0; i < 120; i ++){
+
+    for(int i = 0; i < 120; i++){
         free(objs[i]);
     }
     while(allocations < 120){
@@ -54,8 +55,8 @@ int main(){
             allocations++;
         }
         else{
-            header* p = (header*) ptrs[idx];
-           if(p != NULL){
+            header* p = (header*) ptrs[idx];            
+        if(p != NULL && p->status == 2){
              free(p);
            }
         }
@@ -64,13 +65,34 @@ int main(){
 
     for(int i = 0; i < 120; i++){
             header* p = (header*) ptrs[idx];
-            if(p!= NULL){
+            
+            if(p!= NULL && p->status == 2){
                 free(p);
             }     
     }
 
 
+    // Node* head;
+    // head->next = NULL;
+    // // void *nodes[120];
+    // for(int i = 0; i < 120; i++){
+    //    Node* cur = head;
+    //     while(cur->next){
+    //         cur = cur->next;
+    //     }
+    //     cur->next = malloc(16);
+    // }
+
+    // Node* cur = head->next;
+    // Node* prev;
+    // while(cur->next){
+    //     prev = cur;
+    //     cur = cur-> next;
+    //     free(prev);
+    // }
+   
     
+
 
     flag++;
     }

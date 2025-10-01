@@ -15,11 +15,13 @@
 
 #define MEMSIZE 4096
 #define HEADERSIZE 8
-#define OBJECTS 2
+#define OBJECTS 64
 #define OBJSIZE (MEMSIZE / OBJECTS - HEADERSIZE)
 
 int main(int argc, char **argv)
 {
+
+
 	char *obj[OBJECTS];
 	int i, j, errors = 0;
 
@@ -57,7 +59,6 @@ int main(int argc, char **argv)
 	if (!LEAK) {
 	    for (i = 0; i < OBJECTS; i++) {
 		free(obj[i]);
-		
 	    }
 	}
 

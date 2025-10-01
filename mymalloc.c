@@ -9,11 +9,6 @@ static union
     double not_used;
 } heap;
 
-typedef struct
-{
-    int length;
-    int status;
-} header;
 int roundUp(size_t num);
 void *mymalloc(size_t size, char *file, int line)
 {
@@ -30,14 +25,14 @@ void *mymalloc(size_t size, char *file, int line)
         p += p->length / 8 + 1;
     };
 
-    
+
     p->length = roundUp(size);
+
     p->status = 2;
 
-
-
-    return p + 1;
-
+    header * next = p + p->length / 8;
+    next->status = 0;
+    next->length = MEMLENGTH - sum;
 }
 
 int roundUp(size_t num)
@@ -72,9 +67,10 @@ void myfree(void *ptr, char *file, int line){
     else{
     printf("%p\n", p);
     printf("%d\n", p->status);
-        printf("Inappropriate ppointer (%s:%d)\n", file, line);
+        printf("Inappropriate pointer (%s:%d)\n", file, line);
         exit(2);
     }
+
 }
 
 void leaktest(){
