@@ -18,6 +18,12 @@ void *mymalloc(size_t size, char *file, int line)
     int sum = size + 8;
     while (p < (header *)&heap.bytes[MEMLENGTH - 1])
     {
+        if (sum > MEMLENGTH)
+        {
+            printf("%d\n", sum);
+            printf("malloc: Unable to allocate %zu bytes (%s:%d)\n", size, file, line);
+            return NULL;
+        }
         if (p->status == 0)
         {
             if (p->length != 0 && p->length < size)
@@ -33,13 +39,6 @@ void *mymalloc(size_t size, char *file, int line)
         }
 
         sum += p->length;
-        if (sum > MEMLENGTH)
-        {
-            printf("%d\n", sum);
-            printf("malloc: Unable to allocate %zu bytes (%s:%d)\n", size, file, line);
-            return NULL;
-        }
-
         p += p->length / 8 + 1;
     };
 

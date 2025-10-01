@@ -36,6 +36,7 @@ void testThings()
     free(p1);
     free(p3);
     free(p4);
+    
 }
 
 void testCoalesce()
