@@ -12,27 +12,46 @@ static union
 int roundUp(size_t num);
 void *mymalloc(size_t size, char *file, int line)
 {
+    int valid = 1;
     header *p = (header *)&heap.bytes[0];
     int sum = size + 8;
-    while (p->status == 2)
+    while (p < (header *) &heap.bytes[MEMLENGTH - 1])
     {
+        if(p->status == 0) {
+            if(p->length == 0 || p->length >= size){
+            p->length = roundUp(size);
+            valid = 2;
+            break;
+            }
+        }
+
         sum += p->length;
         if (sum > MEMLENGTH)
         {
+            printf("%d\n", sum);
             printf("malloc: Unable to allocate %zu bytes (%s:%d)\n", size, file, line);
             return NULL;
         }
+
+      
         p += p->length / 8 + 1;
     };
 
-
-    p->length = roundUp(size);
-
+    if(valid == 1) {
+             printf("malloc: Unable to allocate %zu bytessss (%s:%d)\n", size, file, line);
+            return NULL;
+    }
     p->status = 2;
 
+    
     header * next = p + p->length / 8;
-    next->status = 0;
+   if(next <= (header*) &heap.bytes[MEMLENGTH - 16]){
+     next->status = 0;
     next->length = MEMLENGTH - sum;
+   }
+    
+
+    return p + 1;
 }
 
 int roundUp(size_t num)
@@ -65,11 +84,23 @@ void myfree(void *ptr, char *file, int line){
         p->status = 0;
     }
     else{
-    printf("%p\n", p);
-    printf("%d\n", p->status);
         printf("Inappropriate pointer (%s:%d)\n", file, line);
         exit(2);
     }
+
+    header * cur = (header *) &heap.bytes[0];
+     while (cur < (header *) &heap.bytes[MEMLENGTH - 32])
+    {
+        if(cur->status == 0){
+            header * next = cur + cur->length / 8;
+            if(next->status == 0){
+                cur->length = cur->length + next->length;
+            }
+        }
+
+        cur += cur->length / 8 + 1;
+    };
+    
 
 }
 

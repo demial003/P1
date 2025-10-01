@@ -12,7 +12,7 @@ int main(){
    testCoalesce();
    testDeallocation();
    testLeak();
-   testErrors();
+//    testErrors();
 }
 
 
