@@ -9,9 +9,28 @@ static union
     double not_used;
 } heap;
 
+typedef struct
+{
+    int length;
+    int status;
+} header;
+
 int roundUp(size_t num);
+void leaktest();
+
+void initialize(){
+    for(int i = 0; i < MEMLENGTH; i++){
+        heap.bytes[i] = 0;
+    }
+    atexit(leaktest);
+}
 void *mymalloc(size_t size, char *file, int line)
 {
+    static int initialized = 0;
+    if(initialized == 0){
+        initialize();
+        initialized = 1;
+    }
     int valid = 1;
     int old = 0;
     header *p = (header *)&heap.bytes[0];
@@ -20,7 +39,6 @@ void *mymalloc(size_t size, char *file, int line)
     {
         if (sum > MEMLENGTH)
         {
-            printf("%d\n", sum);
             printf("malloc: Unable to allocate %zu bytes (%s:%d)\n", size, file, line);
             return NULL;
         }
@@ -44,6 +62,7 @@ void *mymalloc(size_t size, char *file, int line)
 
     if (valid == 1)
     {
+        // printf("%p\n\n", p);
         printf("malloc: Unable to allocate %zu bytessss (%s:%d)\n", size, file, line);
         return NULL;
     }
@@ -138,7 +157,7 @@ void myfree(void *ptr, char *file, int line)
         cur += cur->length / 8 + 1;
     };
     header *n = h + h->length / 8 + 1;
-    if (h->length < 4088 && h->status == 0 && n->status == 0)
+    if (h->length < MEMLENGTH - 8 && h->status == 0 && n->status == 0)
     {
         h->length += n->length;
     }

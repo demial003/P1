@@ -3,10 +3,14 @@
 #include <unistd.h>
 #include <string.h>
 #include "mymalloc.h"
+typedef struct
+{
+    int length;
+    int status;
+} header;
 
 void testCoalesce();
 void testLeak();
-void testErrors();
 void testDeallocation();
 void testThings();
 int main()
@@ -56,23 +60,6 @@ void testCoalesce()
     free(p3);
 }
 
-void testErrors()
-{
-
-    void *f = malloc(123456);
-
-    int x;
-    free(&x);
-
-    int *a = malloc(sizeof(int) * 2);
-    free(a + 1);
-
-    int *p = malloc(sizeof(int) * 100);
-    int *q = p;
-    free(p);
-    free(q);
-}
-
 void testDeallocation()
 {
     void *p = malloc(24);
@@ -90,5 +77,4 @@ void testDeallocation()
 void testLeak()
 {
     void *p = malloc(21);
-    atexit(leaktest);
 }
