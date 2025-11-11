@@ -14,67 +14,57 @@ typedef struct
     int length;
     int status;
 } header;
+static int initialized = 0;
 
 int roundUp(size_t num);
 void leaktest();
 
-void initialize(){
-    for(int i = 0; i < MEMLENGTH; i++){
+void initialize()
+{
+    for (int i = 0; i < MEMLENGTH; i++)
+    {
         heap.bytes[i] = 0;
     }
+    header *h = (header *)&heap.bytes[0];
+    h->length = MEMLENGTH - sizeof(header);
+    h->status = 0;
     atexit(leaktest);
 }
 void *mymalloc(size_t size, char *file, int line)
 {
-    static int initialized = 0;
-    if(initialized == 0){
+    if (initialized == 0)
+    {
         initialize();
         initialized = 1;
     }
-    int valid = 1;
     int old = 0;
-    header *p = (header *)&heap.bytes[0];
+    char *ptr = heap.bytes;
     int sum = size + 8;
-    while (p < (header *)&heap.bytes[MEMLENGTH - 1])
+    header *h;
+    while (ptr < heap.bytes + MEMLENGTH)
     {
-        if (sum > MEMLENGTH)
-        {
-            printf("malloc: Unable to allocate %zu bytes (%s:%d)\n", size, file, line);
-            return NULL;
-        }
-        if (p->status == 0)
-        {
-            if (p->length != 0 && p->length < size)
-            {
-                p += p->length / 8 + 1;
-                continue;
-            }
-            else
-            {
-                valid = 2;
-                break;
-            }
-        }
+        h = (header *)ptr;
 
-        sum += p->length;
-        p += p->length / 8 + 1;
-    };
+        if (h->status == 0 && h->length >= size)
+            break;
 
-    if (valid == 1)
+        ptr += sizeof(header) + h->length;
+    }
+
+    if (ptr >= heap.bytes + MEMLENGTH)
     {
-        // printf("%p\n\n", p);
-        printf("malloc: Unable to allocate %zu bytessss (%s:%d)\n", size, file, line);
+        fprintf(stderr, "malloc: Unable to allocate %zu bytes (%s:%d)\n", size, file, line);
         return NULL;
     }
 
-    if (p->length >= size)
+    if (h->length >= size)
     {
-        old = p->length;
+        old = h->length;
     }
-    p->length = roundUp(size);
-    p->status = 2;
+    h->length = roundUp(size);
+    h->status = 2;
 
-    header *next = p + p->length / 8 + 1;
+    header *next = (header *)((char *)(h + 1) + h->length);
     if (next <= (header *)&heap.bytes[MEMLENGTH - 16])
     {
         if (next->status != 2)
@@ -85,13 +75,13 @@ void *mymalloc(size_t size, char *file, int line)
         {
             next->length = MEMLENGTH - sum;
         }
-        else if (old - p->length != 0)
+        else if (old - h->length != 0)
         {
-            next->length = old - p->length;
+            next->length = old - h->length;
         }
     }
 
-    return p + 1;
+    return h + 1;
 }
 
 int roundUp(size_t num)
@@ -103,84 +93,48 @@ int roundUp(size_t num)
 
 void myfree(void *ptr, char *file, int line)
 {
-    void *p0 = &heap.bytes[0];
-    int there = 0;
-    while (p0 != &heap.bytes[MEMLENGTH - 1])
+    header *h = (header *)heap.bytes;
+    header *prev = NULL;
+    while ((char *)h < heap.bytes + MEMLENGTH)
     {
-        if (ptr == p0)
+        if ((void *)(h + 1) == ptr)
         {
-            there = 1;
-            break;
-        }
-        else
-        {
-            ++p0;
-        }
-    }
-    if (there == 0)
-    {
-        printf("Inappropriate ppointer (%s:%d)\n", file, line);
-        exit(2);
-    }
-
-    header *p = ptr - 8;
-
-    if (p->status == 2)
-    {
-        p->status = 0;
-    }
-    else
-    {
-        printf("Inappropriate pointer (%s:%d)\n", file, line);
-        exit(2);
-    }
-
-    header *cur = (header *)&heap.bytes[0];
-    header *h = (header *)&heap.bytes[0];
-
-    int sum = 8;
-    while (cur < (header *)&heap.bytes[MEMLENGTH - 32])
-    {
-
-        sum += cur->length;
-        if (cur->status == 0 && sum != MEMLENGTH)
-        {
-            header *next = cur + cur->length / 8 + 1;
-            if (next > (header *)&heap.bytes[MEMLENGTH - 32])
-                break;
-
-            if (next->status == 0)
+            h->status = 0;
+            header *next = (header *)((char *)(h + 1) + h->length);
+            if ((char *)next < heap.bytes + MEMLENGTH && next->status == 0)
             {
-                cur->length += next->length + 8;
+                h->length += next->length + sizeof(header);
             }
+
+            if (prev && prev->status == 0)
+            {
+                prev->length += h->length + sizeof(header);
+            }
+            return;
         }
-        cur += cur->length / 8 + 1;
-    };
-    header *n = h + h->length / 8 + 1;
-    if (h->length < MEMLENGTH - 8 && h->status == 0 && n->status == 0)
-    {
-        h->length += n->length;
+        prev = h;
+        h = (header *)((char *)(h + 1) + h->length);
     }
+    fprintf(stderr, "free: Inappropriate pointer (%s:%d)\n", file, line);
+    exit(2);
 }
 
 void leaktest()
 {
-
     int objs = 0;
     int len = 0;
+    header *h = (header *)heap.bytes;
 
-    for (int i = 0; i < MEMLENGTH - 16; i++)
+    while ((char *)h < heap.bytes + MEMLENGTH)
     {
-        header *p = (header *)&heap.bytes[i];
-        if (p->status == 2)
+        if (h->status == 2)
         {
             objs++;
-            len += p->length;
+            len += h->length;
         }
+        h = (header *)((char *)(h + 1) + h->length);
     }
 
-    if (objs != 0 && len != 0)
-    {
-        printf("mymalloc: %d bytes leaked in %d objects.\n", len, objs);
-    }
+    if (objs > 0)
+        fprintf(stderr, "mymalloc: %d bytes leaked in %d objects.\n", len, objs);
 }
